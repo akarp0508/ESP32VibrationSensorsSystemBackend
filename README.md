@@ -1,0 +1,1 @@
+# Backend do systemu rozproszonych czujników inercyjnych
