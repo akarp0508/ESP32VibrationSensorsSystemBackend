@@ -1,3 +1,5 @@
 .env
 mosquitto/config/passwd
-mosquitto/log/*
+mosquitto/log
+mosquitto/data
+influxdb
