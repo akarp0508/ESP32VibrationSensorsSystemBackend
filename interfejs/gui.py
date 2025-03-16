@@ -9,6 +9,7 @@ from datetime import datetime
 import MQTTDialog
 from message_sender import MQTT_data_provider;
 import InfluxDialog
+from analysis_helper import fft_analysis
 
 class MainWindow:
     def __init__(self, root):
@@ -90,9 +91,16 @@ class MainWindow:
         ttk.Checkbutton(main_frame, text="Linie", variable=self.lines_var).grid(row=7, column=1)
         ttk.Checkbutton(main_frame, text="Punkty", variable=self.points_var).grid(row=7, column=2)
 
+        # Wybór analizy
+        ttk.Label(main_frame, text="Wybierz rodzaj wykresu:").grid(row=8, column=0, padx=5, pady=5, sticky="w")
+        self.analysis_combobox_var = tk.StringVar()
+        self.analysis_combobox = ttk.Combobox(main_frame, textvariable=self.analysis_combobox_var, values=["Dane", "FFT", "Amplitudowa"], state="readonly")
+        self.analysis_combobox.grid(row=8, column=1, columnspan=2, padx=5, pady=5)
+        self.analysis_combobox.set("Dane")
+
         # Przycisk Pokaż
         self.get_button = ttk.Button(main_frame, text="Pokaż", command=self.on_get_button)
-        self.get_button.grid(row=8, column=0, columnspan=3, pady=15, padx=78, sticky="ew")
+        self.get_button.grid(row=9, column=0, columnspan=3, pady=15, padx=78, sticky="ew")
 
         # Wykres
         self.fig, self.ax = plt.subplots(figsize=(10, 6))
@@ -194,6 +202,8 @@ class MainWindow:
         # Pozyskanie danych
         self.create_data_aquisitor_if_it_does_not_exist();
         x_data, y_data = self.data_acquisitor.fetch_data(selected_value, start_datetime, end_datetime, sensor_id)
+        if(self.analysis_combobox_var.get()=="FFT"):
+            x_data, y_data = fft_analysis(x_data, y_data);
 
         marker = "o" if self.points_var.get()==1 else ""
         linestyle = "-" if self.lines_var.get()==1 else ""
@@ -208,7 +218,8 @@ class MainWindow:
         self.ax.yaxis.set_major_locator(MaxNLocator(nbins=5))
 
         # Formatowanie daty na osi X
-        plt.gca().xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter('%d-%m %H:%M:%S'))
+        if(self.analysis_combobox_var.get()=="Dane"):
+            plt.gca().xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter('%d-%m %H:%M:%S'))
 
         self.canvas.draw()
 
