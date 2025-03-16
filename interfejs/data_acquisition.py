@@ -17,6 +17,7 @@ class InfluxDBDataProvider:
             password=self.password, 
             database=self.database
         )
+        result = self.client.query("")
 
     def fetch_data(self, selected_value, start_datetime, end_datetime, sensor_id):
         start = int(start_datetime.timestamp())
