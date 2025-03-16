@@ -38,7 +38,7 @@ class InfluxDBDataProvider:
         data = []
 
         for point in points:
-            timestamp = datetime.strptime(point['time'], "%Y-%m-%dT%H:%M:%S.%fZ")
+            timestamp = parse_iso_timestamp(point['time'])
             timestamps.append(timestamp)
             data.append(point[selected_value])
         
@@ -55,3 +55,8 @@ class InfluxDBDataProvider:
         sensors = [point['value'] for point in points]
         
         return sensors
+
+def parse_iso_timestamp(time_string):
+    # If there are milliseconds, use the full format; otherwise, use the shorter one
+    format_str = "%Y-%m-%dT%H:%M:%S.%fZ" if "." in time_string else "%Y-%m-%dT%H:%M:%SZ"
+    return datetime.strptime(time_string, format_str)
