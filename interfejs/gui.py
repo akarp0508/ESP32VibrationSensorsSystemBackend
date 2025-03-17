@@ -9,7 +9,7 @@ from datetime import datetime
 import MQTTDialog
 from message_sender import MQTT_data_provider;
 import InfluxDialog
-from analysis_helper import fft_analysis
+from analysis_helper import fft_analysis, basic_analysis
 import json
 import time
 
@@ -96,13 +96,34 @@ class MainWindow:
         # Wybór analizy
         ttk.Label(main_frame, text="Wybierz rodzaj wykresu:").grid(row=8, column=0, padx=5, pady=5, sticky="w")
         self.analysis_combobox_var = tk.StringVar()
-        self.analysis_combobox = ttk.Combobox(main_frame, textvariable=self.analysis_combobox_var, values=["Dane", "FFT", "Amplitudowa"], state="readonly")
+        self.analysis_combobox = ttk.Combobox(main_frame, textvariable=self.analysis_combobox_var, values=["Dane", "FFT"], state="readonly")
         self.analysis_combobox.grid(row=8, column=1, columnspan=2, padx=5, pady=5)
         self.analysis_combobox.set("Dane")
 
         # Przycisk Pokaż
         self.get_button = ttk.Button(main_frame, text="Pokaż", command=self.on_get_button)
         self.get_button.grid(row=9, column=0, columnspan=3, pady=15, padx=78, sticky="ew")
+
+        # Analiza amplitudowa
+        ttk.Label(main_frame, text="Wyniki analizy amplitudowej:", font=("TkDefaultFont", 12, "bold")).grid(row=10, column=0, padx=5, pady=5, sticky="w")
+
+        self.rms_label = ttk.Label(main_frame, text="RMS: -")
+        self.rms_label.grid(row=11, column=0, sticky="w", pady=5)
+
+        self.mean_label = ttk.Label(main_frame, text="Średnia: -")
+        self.mean_label.grid(row=12, column=0, sticky="w", pady=5)
+
+        self.max_label = ttk.Label(main_frame, text="Max: -")
+        self.max_label.grid(row=11, column=1, sticky="w", pady=5)
+
+        self.min_label = ttk.Label(main_frame, text="Min: -")
+        self.min_label.grid(row=12, column=1, sticky="w", pady=5)
+
+        self.pp_label = ttk.Label(main_frame, text="Peak-to-Peak: -")
+        self.pp_label.grid(row=11, column=2, sticky="w", pady=5)
+
+        self.std_label = ttk.Label(main_frame, text="Odchylenie std: -")
+        self.std_label.grid(row=12, column=2, sticky="w", pady=5)
 
         # Wykres
         self.fig, self.ax = plt.subplots(figsize=(12, 8))
@@ -160,7 +181,7 @@ class MainWindow:
         self.send_button.grid(row=6, column=7, columnspan=3, pady=10, padx=78, sticky="ew")
 
         table_frame = ttk.Frame(main_frame)
-        table_frame.grid(row=7, column=7, rowspan=5, columnspan=9, pady=10, sticky="nsew")
+        table_frame.grid(row=7, column=7, rowspan=6, columnspan=9, pady=10, sticky="nsew")
 
         columns = ("Sensor", "Tryb", "Częst", "Próg", "Czas")
 
@@ -249,6 +270,7 @@ class MainWindow:
         # Pozyskanie danych
         self.create_data_aquisitor_if_it_does_not_exist();
         x_data, y_data = self.data_acquisitor.fetch_data(selected_value, start_datetime, end_datetime, sensor_id)
+        self.update_basic_analysis_fields(y_data)
         if(self.analysis_combobox_var.get()=="FFT"):
             x_data, y_data = fft_analysis(x_data, y_data);
 
@@ -270,8 +292,17 @@ class MainWindow:
 
         self.canvas.draw()
 
+    def update_basic_analysis_fields(self, y_data):
+        rms, mean, max_val, min_val, pp_val, std_val = basic_analysis(y_data)
+        
+        self.rms_label.config(text=f"RMS: {rms}")
+        self.mean_label.config(text=f"Średnia: {mean}")
+        self.max_label.config(text=f"Max: {max_val}")
+        self.min_label.config(text=f"Min: {min_val}")
+        self.pp_label.config(text=f"Peak-to-Peak: {pp_val}")
+        self.std_label.config(text=f"Odchylenie std: {std_val}")
+
     def get_selected_dates(self):
-        """Fetches selected start and end date-time values as datetime objects."""
         
         # Data
         start_date = self.start_date_entry.get()
@@ -289,8 +320,8 @@ class MainWindow:
         start_datetime = datetime.strptime(start_datetime_str, "%Y-%m-%d %H:%M:%S")
         end_datetime = datetime.strptime(end_datetime_str, "%Y-%m-%d %H:%M:%S")
 
-        print(f"Selected Start Date-Time: {start_datetime}")
-        print(f"Selected End Date-Time: {end_datetime}")
+        print(f"Data początkowa: {start_datetime}")
+        print(f"Data końcowa: {end_datetime}")
 
         return start_datetime, end_datetime
 
