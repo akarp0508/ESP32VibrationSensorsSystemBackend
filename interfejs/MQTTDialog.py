@@ -27,7 +27,7 @@ class MQTTDialog(tk.Toplevel):
         self.password_entry = tk.Entry(self, show="*")
         self.password_entry.pack(pady=5)
 
-        self.submit_button = tk.Button(self, text="Submit", command=self.on_submit)
+        self.submit_button = tk.Button(self, text="Połącz", command=self.on_submit)
         self.submit_button.pack(pady=10)
 
         self.result = None
@@ -42,11 +42,11 @@ class MQTTDialog(tk.Toplevel):
             self.result = (ip, port, username, password)
             self.destroy()
         else:
-            self.show_error("IP and Port are required.")
+            self.show_error("IP i port są wymagane")
 
     def show_error(self, message):
         error_window = tk.Toplevel(self)
-        error_window.title("Error")
+        error_window.title("Błąd")
         error_label = tk.Label(error_window, text=message)
         error_label.pack(pady=20)
         ok_button = tk.Button(error_window, text="OK", command=error_window.destroy)

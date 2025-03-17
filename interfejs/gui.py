@@ -10,6 +10,8 @@ import MQTTDialog
 from message_sender import MQTT_data_provider;
 import InfluxDialog
 from analysis_helper import fft_analysis
+import json
+import time
 
 class MainWindow:
     def __init__(self, root):
@@ -17,7 +19,7 @@ class MainWindow:
         self.data_acquisitor = None
         self.root = root
         self.root.title("System Rozproszonych Czujników Inercyjnych")
-        self.root.geometry("1000x800")
+        self.root.geometry("1200x1000")
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         
@@ -103,7 +105,7 @@ class MainWindow:
         self.get_button.grid(row=9, column=0, columnspan=3, pady=15, padx=78, sticky="ew")
 
         # Wykres
-        self.fig, self.ax = plt.subplots(figsize=(10, 6))
+        self.fig, self.ax = plt.subplots(figsize=(12, 8))
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         self.canvas.get_tk_widget().pack()
 
@@ -140,22 +142,50 @@ class MainWindow:
         self.read_freq_combobox.config(state="disabled")
 
         # Wartość do aktywacji pomiaru
-        ttk.Label(main_frame, text="Wartość do aktywacji pomiaru:").grid(row=5, column=7, padx=5, pady=5, sticky="w")
+        ttk.Label(main_frame, text="Wartość do aktywacji pomiaru [m/s2]:").grid(row=3, column=10, padx=5, pady=5, sticky="w")
         self.threshold_var = tk.DoubleVar()
         self.threshold_entry = ttk.Entry(main_frame, textvariable=self.threshold_var)
-        self.threshold_entry.grid(row=5, column=8, columnspan=2, padx=5, pady=5)
+        self.threshold_entry.grid(row=3, column=11, columnspan=2, padx=5, pady=5)
         self.threshold_entry.config(state="disabled")
+
+        # Czas serii
+        ttk.Label(main_frame, text="Czas trwania serii pomiarowej [s]:").grid(row=4, column=10, padx=5, pady=5, sticky="w")
+        self.time_var = tk.DoubleVar()
+        self.time_entry = ttk.Entry(main_frame, textvariable=self.time_var)
+        self.time_entry.grid(row=4, column=11, columnspan=2, padx=5, pady=5)
+        self.time_entry.config(state="disabled")
 
         # Przycisk do wysłania wiadomości
         self.send_button = ttk.Button(main_frame, text="Ustaw", command=self.send_read_type_data)
         self.send_button.grid(row=6, column=7, columnspan=3, pady=10, padx=78, sticky="ew")
 
+        table_frame = ttk.Frame(main_frame)
+        table_frame.grid(row=7, column=7, rowspan=5, columnspan=9, pady=10, sticky="nsew")
+
+        columns = ("Sensor", "Tryb", "Częst", "Próg", "Czas")
+
+        self.tree = ttk.Treeview(table_frame, columns=columns, show="headings")
+
+        for col in columns:
+            self.tree.heading(col, text=col)
+            self.tree.column(col, width=120, anchor="center")
+
+        # Add vertical scrollbar
+        scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
+        self.tree.configure(yscrollcommand=scrollbar.set)
+
+        # Pack table and scrollbar
+        self.tree.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
     def read_type_changed(self, event):
         selected_value = self.read_type_combobox.get()
         if(selected_value == "Aktywowany"):
             self.threshold_entry.config(state="enabled")
+            self.time_entry.config(state="enabled")
         else:
             self.threshold_entry.config(state="disabled")
+            self.time_entry.config(state="disabled")
         if(selected_value=="Wyłączony"):
             self.read_freq_combobox.config(state="disabled")
         else:
@@ -166,7 +196,10 @@ class MainWindow:
         sensor_id = self.combobox_var2.get()
         freq = int(self.read_freq_combobox_var.get())
         threshold = self.threshold_var.get()
-        self.message_controller.send_read_type_data(read_type,sensor_id,freq,threshold)
+        series_time = self.time_var.get();
+        self.message_controller.send_read_type_data(read_type,sensor_id,freq,threshold,series_time)
+        time.sleep(0.5)
+        self.refresh_combobox2()
 
     def on_get_button(self):
         self.update_plot()
@@ -174,6 +207,8 @@ class MainWindow:
     def refresh_combobox2(self):
         self.combobox2["values"] = list(["Wszystkie"])
         self.combobox2.set("Wszystkie")
+        for row in self.tree.get_children():
+            self.tree.delete(row)
         self.create_message_controller_if_it_does_not_exist();
         self.message_controller.request_active()
 
@@ -187,11 +222,23 @@ class MainWindow:
             ip, port, username, password = InfluxDialog.get_influxdb_credentials();
             self.data_acquisitor = InfluxDBDataProvider(ip,port,username = username,password = password);
         
-    def add_new_sensor_to_combobox2(self, sensor_id):
-        values = list(self.combobox2["values"])
-        if(sensor_id not in values):
-            values.append(sensor_id)
-            self.combobox2["values"] = values
+    def add_new_sensor_to_combobox2(self, json_message):
+        try:
+            data = json.loads(json_message)
+            sensor_id = data.get("sensor_id")
+            read_type = self.read_type_combobox["values"][data.get("type")]
+            freq = data.get("freq")
+            threshold = data.get("threshold")
+            time = data.get("time")
+            
+            if sensor_id:
+                values = list(self.combobox2["values"])
+                if sensor_id not in values:
+                    values.append(sensor_id)
+                    self.combobox2["values"] = values
+                    self.tree.insert("", "end", values=(sensor_id, read_type, freq, threshold, time))
+        except json.JSONDecodeError:
+            print("Nieprawidłowy format JSON")
 
     def update_plot(self):
         selected_value = self.combobox_var.get()

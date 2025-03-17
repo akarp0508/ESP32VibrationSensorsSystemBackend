@@ -26,7 +26,7 @@ class InfluxDBDialog(tk.Toplevel):
         self.password_entry = tk.Entry(self, show="*")
         self.password_entry.pack(pady=5)
 
-        self.submit_button = tk.Button(self, text="Submit", command=self.on_submit)
+        self.submit_button = tk.Button(self, text="Połącz", command=self.on_submit)
         self.submit_button.pack(pady=10)
 
         self.result = None
