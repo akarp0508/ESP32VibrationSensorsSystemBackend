@@ -251,7 +251,8 @@ class MainWindow:
         self.create_data_aquisitor_if_it_does_not_exist();
         new_options = self.data_acquisitor.get_sensor_ids()
         self.sensor_combobox["values"] = new_options
-        self.sensor_combobox.set(new_options[0])
+        if(len(new_options)>0):
+            self.sensor_combobox.set(new_options[0])
         print("Odświeżono czujniki: ", new_options)
 
     def on_close(self):
