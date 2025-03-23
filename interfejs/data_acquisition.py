@@ -56,6 +56,42 @@ class InfluxDBDataProvider:
         sensors = [point['value'] for point in points]
         
         return sensors
+    
+    def fetch_alerts(self, page=0):
+        """Retrieve alerts from the 'alerts' table, paginated (10 rows per page)."""
+        limit = 10
+        offset = page * limit
+
+        count_query = 'SELECT COUNT(*) FROM "alert"'
+        count_result = self.client.query(count_query)
+        total_rows = list(count_result.get_points())[0]['count_field']
+        
+        max_pages = (total_rows // limit) + (1 if total_rows % limit > 0 else 0)
+        print(f"Max pages: {max_pages}")
+
+        # Construct query
+        query = f"""
+        SELECT time, "field", "threshold", sensor_id FROM "alert"
+        ORDER BY time DESC
+        LIMIT {limit} OFFSET {offset}
+        """
+
+        print(f"Executing query: {query}")
+
+        result = self.client.query(query)
+        points = result.get_points()
+
+        alerts = []
+        for point in points:
+            alert = {
+                "time": parse_iso_timestamp(point['time']),
+                "field": point["field"],
+                "threshold": float(point["threshold"]),
+                "sensor_id": point["sensor_id"]
+            }
+            alerts.append(alert)
+
+        return max_pages, alerts
 
 def parse_iso_timestamp(time_string):
     # If there are milliseconds, use the full format; otherwise, use the shorter one

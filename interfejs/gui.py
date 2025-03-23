@@ -12,6 +12,7 @@ import InfluxDialog
 from analysis_helper import fft_analysis, basic_analysis
 import json
 import time
+from alerts_viewer import AlertsWindow
 
 class MainWindow:
     def __init__(self, root):
@@ -19,7 +20,7 @@ class MainWindow:
         self.data_acquisitor = None
         self.root = root
         self.root.title("System Rozproszonych Czujników Inercyjnych")
-        self.root.geometry("1200x1000")
+        self.root.geometry("1300x1000")
 
         self.root.protocol("WM_DELETE_WINDOW", self.on_close)
         
@@ -126,7 +127,7 @@ class MainWindow:
         self.std_label.grid(row=12, column=2, sticky="w", pady=5)
 
         # Wykres
-        self.fig, self.ax = plt.subplots(figsize=(12, 8))
+        self.fig, self.ax = plt.subplots(figsize=(13, 8))
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.root)
         self.canvas.get_tk_widget().pack()
 
@@ -143,47 +144,48 @@ class MainWindow:
 
         # Przycisk do odświeżenia czujników
         self.refresh_button2 = ttk.Button(main_frame, text="Odśwież czujniki", command=self.refresh_combobox2)
-        self.refresh_button2.grid(row=2, column=7, columnspan=3, pady=10, padx=78, sticky="ew")
+        self.refresh_button2.grid(row=1, column=10, columnspan=3, pady=10, padx=78, sticky="ew")
 
         # ComboBox do trybu odczytu
-        ttk.Label(main_frame, text="Wybierz tryb odczytu:").grid(row=3, column=7, padx=5, pady=5, sticky="w")
+        ttk.Label(main_frame, text="Wybierz tryb odczytu:").grid(row=2, column=7, padx=5, pady=5, sticky="w")
         self.read_type_combobox_var = tk.StringVar()
-        self.read_type_combobox = ttk.Combobox(main_frame, textvariable=self.read_type_combobox_var, values=["Wyłączony", "Ciągły", "Aktywowany"], state="readonly")
-        self.read_type_combobox.grid(row=3, column=8, columnspan=2, padx=5, pady=5)
+        self.read_type_combobox = ttk.Combobox(main_frame, textvariable=self.read_type_combobox_var, values=["Wyłączony", "Ciągły", "Alarm"], state="readonly")
+        self.read_type_combobox.grid(row=2, column=8, columnspan=2, padx=5, pady=5)
         self.read_type_combobox.current(0)
         # Bind the event to the method
         self.read_type_combobox.bind("<<ComboboxSelected>>", self.read_type_changed)
 
         # Ilość pomiarów na sekunde
-        ttk.Label(main_frame, text="Ilość pomiarów na sekunde:").grid(row=4, column=7, padx=5, pady=5, sticky="w")
+        ttk.Label(main_frame, text="Ilość pomiarów na sekunde:").grid(row=3, column=7, padx=5, pady=5, sticky="w")
         self.read_freq_combobox_var = tk.StringVar()
         self.read_freq_combobox = ttk.Combobox(main_frame, textvariable=self.read_freq_combobox_var, values=["100", "10", "1"], state="readonly")
-        self.read_freq_combobox.grid(row=4, column=8, columnspan=2, padx=5, pady=5)
+        self.read_freq_combobox.grid(row=3, column=8, columnspan=2, padx=5, pady=5)
         self.read_freq_combobox.current(0)
         self.read_freq_combobox.config(state="disabled")
 
-        # Wartość do aktywacji pomiaru
-        ttk.Label(main_frame, text="Wartość do aktywacji pomiaru [m/s2]:").grid(row=3, column=10, padx=5, pady=5, sticky="w")
+        # Wartość do aktywacji alarmu
+        ttk.Label(main_frame, text="Wartość do aktywacji alarmu [m/s2]:").grid(row=2, column=10, padx=5, pady=5, sticky="w")
         self.threshold_var = tk.DoubleVar()
         self.threshold_entry = ttk.Entry(main_frame, textvariable=self.threshold_var)
-        self.threshold_entry.grid(row=3, column=11, columnspan=2, padx=5, pady=5)
+        self.threshold_entry.grid(row=2, column=11, columnspan=2, padx=5, pady=5)
         self.threshold_entry.config(state="disabled")
 
-        # Czas serii
-        ttk.Label(main_frame, text="Czas trwania serii pomiarowej [s]:").grid(row=4, column=10, padx=5, pady=5, sticky="w")
-        self.time_var = tk.DoubleVar()
-        self.time_entry = ttk.Entry(main_frame, textvariable=self.time_var)
-        self.time_entry.grid(row=4, column=11, columnspan=2, padx=5, pady=5)
-        self.time_entry.config(state="disabled")
+        # Wybór współrzędnej
+        ttk.Label(main_frame, text="Wybierz współrzędną:").grid(row=3, column=10, padx=5, pady=5, sticky="w")
+        self.field_var = tk.StringVar()
+        self.field_combobox = ttk.Combobox(main_frame, textvariable=self.field_var, values=["x", "y", "z"], state="readonly")
+        self.field_combobox.grid(row=3, column=11, columnspan=2, padx=5, pady=5)
+        self.field_combobox.current(0)
+        self.field_combobox.config(state="disabled")
 
         # Przycisk do wysłania wiadomości
         self.send_button = ttk.Button(main_frame, text="Ustaw", command=self.send_read_type_data)
-        self.send_button.grid(row=6, column=7, columnspan=3, pady=10, padx=78, sticky="ew")
+        self.send_button.grid(row=4, column=7, columnspan=3, pady=10, padx=78, sticky="ew")
 
         table_frame = ttk.Frame(main_frame)
-        table_frame.grid(row=7, column=7, rowspan=6, columnspan=9, pady=10, sticky="nsew")
+        table_frame.grid(row=5, column=7, rowspan=5, columnspan=9, pady=10, sticky="nsew")
 
-        columns = ("Sensor", "Tryb", "Częst", "Próg", "Czas")
+        columns = ("Sensor", "Tryb", "Częst", "Próg", "Współrzędna")
 
         self.tree = ttk.Treeview(table_frame, columns=columns, show="headings")
 
@@ -191,22 +193,26 @@ class MainWindow:
             self.tree.heading(col, text=col)
             self.tree.column(col, width=120, anchor="center")
 
-        # Add vertical scrollbar
         scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.tree.yview)
         self.tree.configure(yscrollcommand=scrollbar.set)
 
-        # Pack table and scrollbar
         self.tree.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
+        # Przycisk do przeglądania alarmów
+        ttk.Label(main_frame, text="Przegląd alarmów:", font=("TkDefaultFont", 12, "bold")).grid(row=10, column=7, padx=5, pady=5, sticky="w")
+
+        self.show_alerts_button = ttk.Button(main_frame, text="Pokaż alarmy", command=self.show_alerts)
+        self.show_alerts_button.grid(row=11, column=7, columnspan=3, pady=10, padx=78, sticky="ew")
+
     def read_type_changed(self, event):
         selected_value = self.read_type_combobox.get()
-        if(selected_value == "Aktywowany"):
+        if(selected_value == "Alarm"):
             self.threshold_entry.config(state="enabled")
-            self.time_entry.config(state="enabled")
+            self.field_combobox.config(state="enabled")
         else:
             self.threshold_entry.config(state="disabled")
-            self.time_entry.config(state="disabled")
+            self.field_combobox.config(state="disabled")
         if(selected_value=="Wyłączony"):
             self.read_freq_combobox.config(state="disabled")
         else:
@@ -217,13 +223,17 @@ class MainWindow:
         sensor_id = self.combobox_var2.get()
         freq = int(self.read_freq_combobox_var.get())
         threshold = self.threshold_var.get()
-        series_time = self.time_var.get();
-        self.message_controller.send_read_type_data(read_type,sensor_id,freq,threshold,series_time)
+        field = self.field_combobox["values"].index(self.field_var.get())
+        self.message_controller.send_read_type_data(read_type,sensor_id,freq,threshold,field)
         time.sleep(0.5)
         self.refresh_combobox2()
 
     def on_get_button(self):
         self.update_plot()
+
+    def show_alerts(self):
+        self.create_data_aquisitor_if_it_does_not_exist()
+        AlertsWindow(self.root, self.data_acquisitor)
 
     def refresh_combobox2(self):
         self.combobox2["values"] = list(["Wszystkie"])
@@ -247,17 +257,17 @@ class MainWindow:
         try:
             data = json.loads(json_message)
             sensor_id = data.get("sensor_id")
-            read_type = self.read_type_combobox["values"][data.get("type")]
+            read_type = self.read_type_combobox["values"][data.get("mode")]
             freq = data.get("freq")
             threshold = data.get("threshold")
-            time = data.get("time")
+            field = self.field_combobox["values"][data.get("field")]
             
             if sensor_id:
                 values = list(self.combobox2["values"])
                 if sensor_id not in values:
                     values.append(sensor_id)
                     self.combobox2["values"] = values
-                    self.tree.insert("", "end", values=(sensor_id, read_type, freq, threshold, time))
+                    self.tree.insert("", "end", values=(sensor_id, read_type, freq, threshold, field))
         except json.JSONDecodeError:
             print("Nieprawidłowy format JSON")
 

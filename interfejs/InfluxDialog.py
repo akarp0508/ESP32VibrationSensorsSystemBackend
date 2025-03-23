@@ -53,7 +53,7 @@ class InfluxDBDialog(tk.Toplevel):
 
 def get_influxdb_credentials():
     root = tk.Tk()
-    root.withdraw()  # Hide the root window
+    root.withdraw()
 
     dialog = InfluxDBDialog(root)
     root.wait_window(dialog)
