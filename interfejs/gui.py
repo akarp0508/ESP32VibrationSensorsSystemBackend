@@ -36,7 +36,7 @@ class MainWindow:
         # Wybór współrzędnej
         ttk.Label(main_frame, text="Wybierz współrzędną:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
         self.combobox_var = tk.StringVar()
-        self.combobox = ttk.Combobox(main_frame, textvariable=self.combobox_var, values=["x", "y", "z"], state="readonly")
+        self.combobox = ttk.Combobox(main_frame, textvariable=self.combobox_var, values=["Przyspieszenie x", "Przyspieszenie y", "Przyspieszenie z", "Żyroskop x", "Żyroskop y", "Żyroskop z",], state="readonly")
         self.combobox.grid(row=1, column=1, columnspan=2, padx=5, pady=5)
         self.combobox.current(0)
 
@@ -173,19 +173,25 @@ class MainWindow:
         # Wybór współrzędnej
         ttk.Label(main_frame, text="Wybierz współrzędną:").grid(row=3, column=10, padx=5, pady=5, sticky="w")
         self.field_var = tk.StringVar()
-        self.field_combobox = ttk.Combobox(main_frame, textvariable=self.field_var, values=["x", "y", "z"], state="readonly")
+        self.field_combobox = ttk.Combobox(main_frame, textvariable=self.combobox_var, values=["Przyspieszenie x", "Przyspieszenie y", "Przyspieszenie z", "Żyroskop x", "Żyroskop y", "Żyroskop z",], state="readonly")
         self.field_combobox.grid(row=3, column=11, columnspan=2, padx=5, pady=5)
         self.field_combobox.current(0)
         self.field_combobox.config(state="disabled")
 
+        # Ustawienie cooldown
+        ttk.Label(main_frame, text="Czas pomiędzy alarmami [s]:").grid(row=4, column=7, padx=5, pady=5, sticky="w")
+        self.cooldown_var = tk.DoubleVar()
+        self.cooldown_entry = ttk.Entry(main_frame, textvariable=self.cooldown_var)
+        self.cooldown_entry.grid(row=4, column=8, columnspan=2, padx=5, pady=5)
+
         # Przycisk do wysłania wiadomości
         self.send_button = ttk.Button(main_frame, text="Ustaw", command=self.send_read_type_data)
-        self.send_button.grid(row=4, column=7, columnspan=3, pady=10, padx=78, sticky="ew")
+        self.send_button.grid(row=4, column=10, columnspan=3, pady=10, padx=78, sticky="ew")
 
         table_frame = ttk.Frame(main_frame)
         table_frame.grid(row=5, column=7, rowspan=5, columnspan=9, pady=10, sticky="nsew")
 
-        columns = ("Sensor", "Tryb", "Częst", "Próg", "Współrzędna")
+        columns = ("Sensor", "Tryb", "Częst", "Próg", "Współrzędna", "Cooldown")
 
         self.tree = ttk.Treeview(table_frame, columns=columns, show="headings")
 
@@ -224,7 +230,9 @@ class MainWindow:
         freq = int(self.read_freq_combobox_var.get())
         threshold = self.threshold_var.get()
         field = self.field_combobox["values"].index(self.field_var.get())
-        self.message_controller.send_read_type_data(read_type,sensor_id,freq,threshold,field)
+        cooldown = self.cooldown_var.get()
+
+        self.message_controller.send_read_type_data(read_type,sensor_id,freq,threshold,field,cooldown)
         time.sleep(0.5)
         self.refresh_combobox2()
 
@@ -261,18 +269,19 @@ class MainWindow:
             freq = data.get("freq")
             threshold = data.get("threshold")
             field = self.field_combobox["values"][data.get("field")]
+            cooldown = self.data.get("cooldown")
             
             if sensor_id:
                 values = list(self.combobox2["values"])
                 if sensor_id not in values:
                     values.append(sensor_id)
                     self.combobox2["values"] = values
-                    self.tree.insert("", "end", values=(sensor_id, read_type, freq, threshold, field))
+                    self.tree.insert("", "end", values=(sensor_id, read_type, freq, threshold, field, cooldown))
         except json.JSONDecodeError:
             print("Nieprawidłowy format JSON")
 
     def update_plot(self):
-        selected_value = self.combobox_var.get()
+        selected_value = self.combobox["values"].index(self.combobox_var.get())
 
         start_datetime, end_datetime = self.get_selected_dates()
         sensor_id = self.sensor_combobox.get()

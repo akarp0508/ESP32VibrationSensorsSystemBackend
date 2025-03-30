@@ -23,9 +23,13 @@ class InfluxDBDataProvider:
         start = int(start_datetime.timestamp())
         end = int(end_datetime.timestamp())
 
+        axis = "xyz"[selected_value % 3]
+        table_name = ["sensor_data", "gyro_data"][selected_value//3]
+
+
         # Utworzenie zapytania
         query = f"""
-        SELECT "{selected_value}" FROM "sensor_data"
+        SELECT "{axis}" FROM "{table_name}"
         WHERE time >= {start}000000000 AND time <= {end}000000000 AND sensor_id = '{sensor_id}'
         ORDER BY time ASC
         """
@@ -41,7 +45,7 @@ class InfluxDBDataProvider:
         for point in points:
             timestamp = parse_iso_timestamp(point['time'])
             timestamps.append(timestamp)
-            data.append(point[selected_value])
+            data.append(point[axis])
         
         return timestamps, data
 
@@ -58,7 +62,6 @@ class InfluxDBDataProvider:
         return sensors
     
     def fetch_alerts(self, page=0):
-        """Retrieve alerts from the 'alerts' table, paginated (10 rows per page)."""
         limit = 10
         offset = page * limit
 
@@ -69,7 +72,6 @@ class InfluxDBDataProvider:
         max_pages = (total_rows // limit) + (1 if total_rows % limit > 0 else 0)
         print(f"Max pages: {max_pages}")
 
-        # Construct query
         query = f"""
         SELECT time, "field", "threshold", sensor_id FROM "alert"
         ORDER BY time DESC

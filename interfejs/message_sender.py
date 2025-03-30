@@ -36,13 +36,14 @@ class MQTT_data_provider:
 
         self.client.loop_start() 
     
-    def send_read_type_data(self, read_type, sensor_id, freq, threshold, field):
+    def send_read_type_data(self, read_type, sensor_id, freq, threshold, field, cooldown):
         topic = "mode/all" if(sensor_id=="Wszystkie") else ("mode/"+sensor_id)
         message_dict = {
             "mode": read_type,
             "freq": freq,
             "threshold": threshold,
-            "field": field 
+            "field": field,
+            "cooldown": cooldown
         }
         message_str = json.dumps(message_dict,separators=(',',':'))
         self.client.publish(topic, message_str)

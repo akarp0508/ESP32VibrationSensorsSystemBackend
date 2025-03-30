@@ -2,22 +2,30 @@ import numpy as np
 from scipy.fft import fft, fftfreq
 from datetime import datetime
 
-def fft_analysis(timestamps, data):
-    N = len(data)
-    if(N==0):
-        return list(),list()
-    start = timestamps[0]
-    end = timestamps[-1]
-    
-    duration = (end - start).total_seconds()
-    
-    sample_rate = N / duration
+from scipy.interpolate import interp1d
+from scipy.signal import detrend
 
-    print(sample_rate)
-    
-    yf = fft(data)
-    xf = fftfreq(N, d=1.0 / sample_rate)
-    
+def fft_analysis(timestamps, data):
+    if len(data) == 0:
+        return list(), list()
+
+    timestamps = np.array([(t - timestamps[0]).total_seconds() for t in timestamps])
+    data = np.array(data)
+
+    total_duration = timestamps[-1] - timestamps[0]
+    estimated_sample_rate = len(data) / total_duration
+
+    uniform_timestamps = np.linspace(0, total_duration, len(data))
+
+    interp_func = interp1d(timestamps, data, kind="linear", fill_value="extrapolate")
+    uniform_data = interp_func(uniform_timestamps)
+
+    uniform_data = detrend(uniform_data)
+
+    N = len(uniform_data)
+    yf = fft(uniform_data)
+    xf = np.fft.fftfreq(N, d=1.0 / estimated_sample_rate)
+
     return xf[:N // 2].tolist(), (2.0 / N * np.abs(yf[:N // 2])).tolist()
 
 def basic_analysis(data):
