@@ -84,10 +84,11 @@ class InfluxDBDataProvider:
         points = result.get_points()
 
         alerts = []
+        fields = ["Przyspieszenie X", "Przyspieszenie Y", "Przyspieszenie Z", "Żyroskop X", "Żyroskop Y", "Żyroskop Z"]
         for point in points:
             alert = {
                 "time": parse_iso_timestamp(point['time']),
-                "field": point["field"],
+                "field": fields[int(point["field"])],
                 "threshold": float(point["threshold"]),
                 "sensor_id": point["sensor_id"]
             }
