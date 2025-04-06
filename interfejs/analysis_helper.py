@@ -26,6 +26,8 @@ def fft_analysis(timestamps, data):
     yf = fft(uniform_data)
     xf = np.fft.fftfreq(N, d=1.0 / estimated_sample_rate)
 
+    print(xf[np.argmax(2.0 / N * np.abs(yf[:N // 2]))])
+
     return xf[:N // 2].tolist(), (2.0 / N * np.abs(yf[:N // 2])).tolist()
 
 def basic_analysis(data):

@@ -173,7 +173,7 @@ class MainWindow:
         # Wybór współrzędnej
         ttk.Label(main_frame, text="Wybierz współrzędną:").grid(row=3, column=10, padx=5, pady=5, sticky="w")
         self.field_var = tk.StringVar()
-        self.field_combobox = ttk.Combobox(main_frame, textvariable=self.combobox_var, values=["Przyspieszenie x", "Przyspieszenie y", "Przyspieszenie z", "Żyroskop x", "Żyroskop y", "Żyroskop z",], state="readonly")
+        self.field_combobox = ttk.Combobox(main_frame, textvariable=self.field_var, values=["Przyspieszenie x", "Przyspieszenie y", "Przyspieszenie z", "Żyroskop x", "Żyroskop y", "Żyroskop z",], state="readonly")
         self.field_combobox.grid(row=3, column=11, columnspan=2, padx=5, pady=5)
         self.field_combobox.current(0)
         self.field_combobox.config(state="disabled")
@@ -229,7 +229,7 @@ class MainWindow:
         sensor_id = self.combobox_var2.get()
         freq = int(self.read_freq_combobox_var.get())
         threshold = self.threshold_var.get()
-        field = self.field_combobox["values"].index(self.field_var.get())
+        field = list(self.field_combobox["values"]).index(self.field_var.get())
         cooldown = self.cooldown_var.get()
 
         self.message_controller.send_read_type_data(read_type,sensor_id,freq,threshold,field,cooldown)
@@ -269,7 +269,7 @@ class MainWindow:
             freq = data.get("freq")
             threshold = data.get("threshold")
             field = self.field_combobox["values"][data.get("field")]
-            cooldown = self.data.get("cooldown")
+            cooldown = data.get("cooldown")
             
             if sensor_id:
                 values = list(self.combobox2["values"])
