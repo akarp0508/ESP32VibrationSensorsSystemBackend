@@ -97,6 +97,5 @@ class InfluxDBDataProvider:
         return max_pages, alerts
 
 def parse_iso_timestamp(time_string):
-    # If there are milliseconds, use the full format; otherwise, use the shorter one
     format_str = "%Y-%m-%dT%H:%M:%S.%fZ" if "." in time_string else "%Y-%m-%dT%H:%M:%SZ"
     return datetime.strptime(time_string, format_str)
